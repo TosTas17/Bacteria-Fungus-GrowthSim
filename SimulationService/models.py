@@ -3,9 +3,11 @@ from typing import Optional, List
 
 
 class SimulationRequest(BaseModel):
-    model: str  # "exponential" ou "logistic"
-    initial_population: float
-    growth_rate: float
+    preset: Optional[str] = None
+
+    model: Optional[str] = None
+    initial_population: Optional[float] = None
+    growth_rate: Optional[float] = None
     steps: int = 50
     carrying_capacity: Optional[float] = None
 
@@ -16,4 +18,5 @@ class SimulationPoint(BaseModel):
 
 
 class SimulationResponse(BaseModel):
+    simulation_id: int
     result: List[SimulationPoint]
