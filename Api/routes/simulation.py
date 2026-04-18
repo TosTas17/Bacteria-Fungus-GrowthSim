@@ -4,6 +4,11 @@ from DataBase.db_models import Base, Simulation, SimulationResult
 from SimulationService.models import SimulationRequest
 from MessageBroker.rabbitmq import publish_simulation
 
+from zoneinfo import ZoneInfo
+from datetime import timezone
+
+LISBON_TZ = ZoneInfo("Europe/Lisbon")
+
 router = APIRouter()
 
 @router.on_event("startup")
@@ -58,3 +63,29 @@ def get_simulation(sim_id: int):
         {"time": r.time, "population": r.population}
         for r in results
     ]
+
+@router.get("/simulations/{sim_id}/status")
+def get_simulation_status(sim_id: int):
+    db = SessionLocal()
+
+    sim = db.query(Simulation).filter_by(id=sim_id).first()
+
+    if not sim:
+        db.close()
+        raise HTTPException(status_code=404, detail="Simulation not found")
+
+    def to_lisbon(dt):
+        if dt is None:
+            return None
+        return dt.astimezone(LISBON_TZ).isoformat()
+
+    response = {
+        "simulation_id": sim.id,
+        "status": sim.status,
+        "created_at": to_lisbon(sim.created_at),
+        "started_at": to_lisbon(sim.started_at),
+        "finished_at": to_lisbon(sim.finished_at),
+    }
+
+    db.close()
+    return response

@@ -1,4 +1,6 @@
-from sqlalchemy import Column, Integer, Float, String, ForeignKey
+from datetime import datetime, timezone
+
+from sqlalchemy import Column, Integer, Float, String, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 from DataBase.database import Base
 
@@ -12,6 +14,10 @@ class Simulation(Base):
     growth_rate = Column(Float)
     carrying_capacity = Column(Float, nullable=True)
     steps = Column(Integer)
+    status = Column(String, default="pending")
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    started_at = Column(DateTime(timezone=True), nullable=True)
+    finished_at = Column(DateTime(timezone=True), nullable=True)         
 
 
 class SimulationResult(Base):

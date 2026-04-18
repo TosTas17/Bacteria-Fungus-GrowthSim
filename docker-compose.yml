@@ -52,7 +52,6 @@ services:
         context: .
         dockerfile: Dockerfile.worker
         # don't use container_name for worker to allow scaling -> docker compose up --scale simulation-worker=3
-    command: python SimulationService/consumer.py
     env_file:
       - .env
     depends_on:

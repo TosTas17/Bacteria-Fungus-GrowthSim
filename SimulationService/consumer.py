@@ -5,7 +5,10 @@ import time
 
 from SimulationService.simulator import exponential_growth, logistic_growth
 from DataBase.database import SessionLocal
-from DataBase.db_models import SimulationResult
+from DataBase.db_models import SimulationResult, Simulation
+
+from datetime import datetime, timezone
+
 
 RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "rabbitmq")
 
@@ -24,31 +27,63 @@ def callback(ch, method, properties, body):
 
     print(f"[+] Processing simulation {sim_id}")
 
-    # correr simulação
-    if model == "exponential":
-        result = exponential_growth(N0, r, steps)
-
-    elif model == "logistic":
-        result = logistic_growth(N0, r, K, steps)
-
-    else:
-        print("Invalid model")
-        return
-
-    # guardar na DB
     db = SessionLocal()
 
-    for point in result:
-        db.add(SimulationResult(
-            simulation_id=sim_id,
-            time=point["time"],
-            population=point["population"]
-        ))
+    try:
+   
+        sim = db.query(Simulation).filter_by(id=sim_id).first()
 
-    db.commit()
-    db.close()
+        if not sim:
+            print("Simulation not found")
+            return
 
-    print(f"[✔] Finished simulation {sim_id}")
+   
+        sim.status = "running"
+        sim.started_at = datetime.now(timezone.utc)
+        db.commit()
+
+        # correr simulação
+        if model == "exponential":
+            result = exponential_growth(N0, r, steps)
+
+        elif model == "logistic":
+            result = logistic_growth(N0, r, K, steps)
+
+        else:
+            print("Invalid model")
+            sim.status = "failed"
+            db.commit()
+            return
+
+        # guardar resultados
+        for point in result:
+            db.add(SimulationResult(
+                simulation_id=sim_id,
+                time=point["time"],
+                population=point["population"]
+            ))
+
+    
+        sim.status = "completed"
+        sim.finished_at = datetime.now(timezone.utc)
+
+
+        db.commit()
+
+        print(f"[✔] Finished simulation {sim_id}")
+
+    except Exception as e:
+        print(f"[!] Error processing simulation {sim_id}: {e}")
+
+        
+        sim = db.query(Simulation).filter_by(id=sim_id).first()
+        if sim:
+            sim.status = "failed"
+            sim.finished_at = datetime.now(timezone.utc)
+            db.commit()
+
+    finally:
+        db.close()
 
 
 
