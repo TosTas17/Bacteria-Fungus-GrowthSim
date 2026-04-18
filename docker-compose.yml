@@ -1,13 +1,14 @@
 services:
+
   db:
     image: postgres:16
+    container_name: simulation-db
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 10
-    container_name: simulation-db
-    restart: always
+      retries: 5
+      start_period: 10s
     env_file:
       - .env
     ports:
@@ -18,26 +19,47 @@ services:
   rabbitmq:
     image: rabbitmq:3-management
     container_name: simulation-rabbitmq
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     ports:
-      - "5672:5672"     # comunicação interna
-      - "15672:15672"   # dashboard web
+      - "5672:5672"
+      - "15672:15672"
     environment:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
 
   api:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.api
     container_name: simulation-api
-    restart: always
     env_file:
       - .env
     depends_on:
       db:
         condition: service_healthy
       rabbitmq:
-        condition: service_started
+        condition: service_healthy
     ports:
       - "8000:8000"
+
+  simulation-worker:
+    build:
+        context: .
+        dockerfile: Dockerfile.worker
+        # don't use container_name for worker to allow scaling -> docker compose up --scale simulation-worker=3
+    command: python SimulationService/consumer.py
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
 volumes:
   pgdata:
