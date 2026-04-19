@@ -1,4 +1,7 @@
 test.txt
 .vscode/
-node_modules
-dist
+node_modules/
+dist/
+__pycache__/
+*.pyc
+.env
