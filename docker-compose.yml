@@ -29,8 +29,8 @@ services:
       - "5672:5672"
       - "15672:15672"
     environment:
-      - RABBITMQ_DEFAULT_USER=guest
-      - RABBITMQ_DEFAULT_PASS=guest
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS}
 
   api:
     build:
@@ -59,6 +59,19 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+
+  websocket:
+    build:
+      context: .
+      dockerfile: Dockerfile.websocket
+    container_name: simulation-websocket
+    env_file:
+      - .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    ports:
+      - "8001:8000"
 
 volumes:
   pgdata:

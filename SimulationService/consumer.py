@@ -69,7 +69,7 @@ def callback(ch, method, properties, body):
 
             # calcular progresso (%)
             progress = int((i + 1) / total_steps * 100)
-
+    
             # enviar update para RabbitMQ
             ch.basic_publish(
                 exchange='',
@@ -81,6 +81,13 @@ def callback(ch, method, properties, body):
                     "progress": progress
                 })
             )
+
+            print("publishing",json.dumps({
+                    "simulation_id": sim_id,
+                    "time": point["time"],
+                    "population": point["population"],
+                    "progress": progress
+                }))
 
     
         sim.status = "completed"
@@ -116,7 +123,7 @@ def start_consumer():
             connection = connect()
             channel = connection.channel()
 
-            #inicializa as filas, mesmo que não consuma de simulation_updates aqui (idempotente)
+           
             channel.queue_declare(queue='simulation_queue',durable=True)
             channel.queue_declare(queue='simulation_updates', durable=True)
 
