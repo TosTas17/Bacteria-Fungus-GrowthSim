@@ -53,15 +53,34 @@ def callback(ch, method, properties, body):
             print("Invalid model")
             sim.status = "failed"
             db.commit()
+            ch.basic_ack(delivery_tag=method.delivery_tag)
             return
 
-        # guardar resultados
-        for point in result:
+        total_steps = len(result)
+
+        for i, point in enumerate(result):
+
+            # guardar na DB
             db.add(SimulationResult(
                 simulation_id=sim_id,
                 time=point["time"],
                 population=point["population"]
             ))
+
+            # calcular progresso (%)
+            progress = int((i + 1) / total_steps * 100)
+
+            # enviar update para RabbitMQ
+            ch.basic_publish(
+                exchange='',
+                routing_key='simulation_updates',
+                body=json.dumps({
+                    "simulation_id": sim_id,
+                    "time": point["time"],
+                    "population": point["population"],
+                    "progress": progress
+                })
+            )
 
     
         sim.status = "completed"
@@ -69,6 +88,8 @@ def callback(ch, method, properties, body):
 
 
         db.commit()
+
+        ch.basic_ack(delivery_tag=method.delivery_tag)
 
         print(f"[✔] Finished simulation {sim_id}")
 
@@ -82,6 +103,8 @@ def callback(ch, method, properties, body):
             sim.finished_at = datetime.now(timezone.utc)
             db.commit()
 
+        ch.basic_ack(delivery_tag=method.delivery_tag)
+
     finally:
         db.close()
 
@@ -93,13 +116,16 @@ def start_consumer():
             connection = connect()
             channel = connection.channel()
 
+            #inicializa as filas, mesmo que não consuma de simulation_updates aqui (idempotente)
             channel.queue_declare(queue='simulation_queue',durable=True)
+            channel.queue_declare(queue='simulation_updates', durable=True)
 
             channel.basic_consume(
                 queue='simulation_queue',
                 on_message_callback=callback,
-                auto_ack=True
+                auto_ack=False
             )
+
 
             print("[*] Waiting for messages...")
             channel.start_consuming()
