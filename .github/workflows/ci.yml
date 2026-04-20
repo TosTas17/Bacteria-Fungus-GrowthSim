@@ -21,6 +21,12 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GHCR_PAT }}
 
+    - name: set lower case owner name
+      run: |
+        echo "OWNER_LC=${OWNER,,}" >>${GITHUB_ENV}
+      env:
+        OWNER: '${{ github.repository_owner }}'
+
     - name: Set up Docker
       uses: docker/setup-docker-action@v5
       with:
@@ -41,7 +47,7 @@ jobs:
         context: .
         file: ./Dockerfile.api
         push: true
-        tags: ghcr.io/${{ github.actor }}/simulator-api:latest
+        tags: ghcr.io/${{ env.OWNER_LC }}/simulator-api:latest
 
     - uses: docker/build-push-action@v4
       with:
@@ -49,7 +55,7 @@ jobs:
         context: .
         file: ./Dockerfile.frontend
         push: true
-        tags: ghcr.io/${{ github.actor }}/simulator-frontend:latest
+        tags: ghcr.io/${{ env.OWNER_LC  }}/simulator-frontend:latest
 
     - uses: docker/build-push-action@v4
       with:
@@ -57,7 +63,7 @@ jobs:
         context: .
         file: ./Dockerfile.nginx
         push: true
-        tags: ghcr.io/${{ github.actor }}/simulator-nginx:latest
+        tags: ghcr.io/${{ env.OWNER_LC }}/simulator-nginx:latest
 
     - uses: docker/build-push-action@v4
       with:
@@ -65,7 +71,7 @@ jobs:
         context: .
         file: ./Dockerfile.websocket
         push: true
-        tags: ghcr.io/${{ github.actor }}/simulator-websocket:latest
+        tags: ghcr.io/${{ env.OWNER_LC }}/simulator-websocket:latest
 
     - uses: docker/build-push-action@v4
       with:
@@ -73,4 +79,4 @@ jobs:
         context: .
         file: ./Dockerfile.worker
         push: true
-        tags: ghcr.io/${{ github.actor }}/simulator-worker:latest
+        tags: ghcr.io/${{ env.OWNER_LC  }}/simulator-worker:latest
