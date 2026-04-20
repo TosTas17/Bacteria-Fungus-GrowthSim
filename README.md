@@ -6,7 +6,7 @@ A scalable, asynchronous simulation system based on an event-driven architecture
 
 The system consists of decoupled services that communicate through a message broker.
 
-
+![Architecture Design](./architecture_desgin.png)
 
 ### Workflow
 1. **API:** Receives the request via `POST /simulate`, creates a record in the DB (status `pending`), and publishes an event.
