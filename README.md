@@ -1,9 +1,4 @@
-# -Bacteria-Fungus-GrowthSim
-Bacteria/Fungus Growth Simulator in microservices
-
----
-
-# 🧫 SimulatorB.io
+# 🧫 SimulatorB.io - Bacteria/Fungus Growth Simulator in microservices
 
 A scalable, asynchronous simulation system based on an event-driven architecture, focused on resilience and decoupling.
 
@@ -32,6 +27,26 @@ The images will be pulled from the GitHub repo:
 ```bash
 docker compose up
 ```
+
+## 🌐 Local Development Setup (Domain)
+
+To access the application via `http://simulatorb.io` in your browser, you must map the domain to your local machine in your `hosts` file.
+
+### 1. Edit your hosts file
+Open your hosts file with administrative privileges:
+
+* **Linux / macOS:** `/etc/hosts`
+* **Windows:** `C:\Windows\System32\drivers\etc\hosts`
+
+### 2. Add the following line:
+```text
+127.0.0.1   simulatorb.io
+```
+
+### 3. Access the application
+Once saved, you can open your browser and navigate to:
+**`http://simulatorb.io`**
+
 
 ### Accessing the Database
 To inspect the PostgreSQL tables:
