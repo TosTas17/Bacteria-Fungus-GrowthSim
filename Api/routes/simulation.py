@@ -2,7 +2,6 @@ from fastapi import APIRouter, HTTPException
 from DataBase.database import SessionLocal, engine
 from DataBase.db_models import Base, Simulation, SimulationResult
 from SimulationService.models import SimulationRequest
-from MessageBroker.rabbitmq import publish_simulation
 
 from zoneinfo import ZoneInfo
 from datetime import timezone
@@ -10,6 +9,7 @@ from datetime import timezone
 LISBON_TZ = ZoneInfo("Europe/Lisbon")
 
 router = APIRouter()
+
 
 @router.on_event("startup")
 def startup():
@@ -33,18 +33,9 @@ def simulate(data: SimulationRequest):
     db.commit()
     db.refresh(sim)
 
-    publish_simulation({
-        "simulation_id": sim.id,
-        "model": data.model,
-        "initial_population": data.initial_population,
-        "growth_rate": data.growth_rate,
-        "carrying_capacity": data.carrying_capacity,
-        "steps": data.steps
-    })
-
     db.close()
 
-    return {"simulation_id": sim.id, "status": "processing"}
+    return {"simulation_id": sim.id, "status": "waiting"}
 
 
 @router.get("/simulations/{sim_id}")

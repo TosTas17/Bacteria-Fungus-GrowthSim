@@ -6,9 +6,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
-# Store active WebSocket connections per simulation
-simulation_connections: dict[str, set[WebSocket]] = {}
+# Store active WebSocket connections per simulation - map ws to ready state
+simulation_connections: dict[str, dict[WebSocket, bool]] = {}
 RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "rabbitmq")
+
+# Channel for requesting simulation start
+start_channel: aio_pika.Channel | None = None
 
 # Readiness signal
 consumer_ready = asyncio.Event()
@@ -16,6 +19,7 @@ consumer_ready = asyncio.Event()
 
 async def consume_rabbitmq():
     """Consume messages from simulation_updates queue and broadcast to WebSocket clients."""
+    global start_channel
     print("[*] Starting RabbitMQ consumer...")
     await asyncio.sleep(5)  # Wait for RabbitMQ to be ready
     
@@ -30,7 +34,12 @@ async def consume_rabbitmq():
             channel = await connection.channel()
             await channel.set_qos(prefetch_count=1)
             
+            # Queue for receiving simulation updates
             queue = await channel.declare_queue("simulation_updates", durable=True)
+            
+            # Queue for requesting simulation start (WebSocket -> API)
+            start_queue = await channel.declare_queue("simulation_start_requests", durable=True)
+            start_channel = channel
             
             print("[*] Waiting for simulation updates...")
             consumer_ready.set()  # Signal that consumer is ready
@@ -42,20 +51,23 @@ async def consume_rabbitmq():
                         print(f"[→] Received update: {data}")
                         sim_id = str(data.get("simulation_id"))
                         
-                        # Broadcast to all WebSocket clients for this simulation
+                        # Broadcast to all READY WebSocket clients for this simulation
                         if sim_id in simulation_connections:
-                            disconnected = set()
-                            for websocket in simulation_connections[sim_id]:
+                            disconnected = []
+                            for websocket, is_ready in simulation_connections[sim_id].items():
+                                if not is_ready:
+                                    print(f"[~] Client for {sim_id} not ready yet, skipping")
+                                    continue
                                 try:
                                     await websocket.send_json(data)
                                     print(f"[→] Sent to WS client {sim_id}")
                                 except Exception as e:
                                     print(f"[!] Error sending to WS: {e}")
-                                    disconnected.add(websocket)
+                                    disconnected.append(websocket)
                             
                             # Remove disconnected clients
                             for ws in disconnected:
-                                simulation_connections[sim_id].discard(ws)
+                                del simulation_connections[sim_id][ws]
 
         except Exception as e:
             print(f"[!] RabbitMQ connection error: {e}")
@@ -97,22 +109,40 @@ async def websocket_endpoint(websocket: WebSocket, simulation_id: str):
     """WebSocket endpoint for receiving simulation updates."""
     await websocket.accept()
 
-    # Add connection to simulation's group
+    # Add connection to simulation's group (not ready yet)
     if simulation_id not in simulation_connections:
-        simulation_connections[simulation_id] = set()
-    simulation_connections[simulation_id].add(websocket)
+        simulation_connections[simulation_id] = {}
+    simulation_connections[simulation_id][websocket] = False
 
-    print(f"[+] Client connected to simulation {simulation_id}")
+    print(f"[+] Client connected to simulation {simulation_id} (waiting for ready)")
 
     try:
-        # Keep connection alive
+        # Wait for client to send ready signal
         while True:
-            await websocket.receive_text()
+            message = await websocket.receive_text()
+            try:
+                data = json.loads(message)
+                if data.get("type") == "ready" and str(data.get("simulation_id")) == simulation_id:
+                    simulation_connections[simulation_id][websocket] = True
+                    print(f"[✓] Client ready for simulation {simulation_id}")
+                    
+                    # Request simulation start via RabbitMQ (simulation service will consume)
+                    if start_channel:
+                        await start_channel.default_exchange.publish(
+                            aio_pika.Message(
+                                body=json.dumps({"simulation_id": simulation_id}).encode(),
+                                delivery_mode=aio_pika.DeliveryMode.PERSISTENT
+                            ),
+                            routing_key="simulation_start"
+                        )
+                        print(f"[→] Sent start request for simulation {simulation_id}")
+            except json.JSONDecodeError:
+                pass
     except WebSocketDisconnect:
         print(f"[-] Client disconnected from simulation {simulation_id}")
     finally:
-        if simulation_id in simulation_connections:
-            simulation_connections[simulation_id].discard(websocket)
+        if simulation_id in simulation_connections and websocket in simulation_connections[simulation_id]:
+            del simulation_connections[simulation_id][websocket]
 
 
 if __name__ == "__main__":

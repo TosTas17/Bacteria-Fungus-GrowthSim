@@ -19,13 +19,8 @@ def callback(ch, method, properties, body):
     data = json.loads(body)
 
     sim_id = data["simulation_id"]
-    model = data["model"]
-    N0 = data["initial_population"]
-    r = data["growth_rate"]
-    steps = data["steps"]
-    K = data.get("carrying_capacity")
 
-    print(f"[+] Processing simulation {sim_id}")
+    print(f"[+] Received start request for simulation {sim_id}")
 
     db = SessionLocal()
 
@@ -35,9 +30,17 @@ def callback(ch, method, properties, body):
 
         if not sim:
             print("Simulation not found")
+            ch.basic_ack(delivery_tag=method.delivery_tag)
             return
 
-   
+        model = sim.model
+        N0 = sim.initial_population
+        r = sim.growth_rate
+        steps = sim.steps
+        K = sim.carrying_capacity
+
+        print(f"[+] Processing simulation {sim_id}")
+
         sim.status = "running"
         sim.started_at = datetime.now(timezone.utc)
         db.commit()
@@ -124,17 +127,17 @@ def start_consumer():
             channel = connection.channel()
 
            
-            channel.queue_declare(queue='simulation_queue',durable=True)
+            channel.queue_declare(queue='simulation_start', durable=True)
             channel.queue_declare(queue='simulation_updates', durable=True)
 
             channel.basic_consume(
-                queue='simulation_queue',
+                queue='simulation_start',
                 on_message_callback=callback,
                 auto_ack=False
             )
 
 
-            print("[*] Waiting for messages...")
+            print("[*] Waiting for simulation start requests...")
             channel.start_consuming()
 
         except Exception as e:
