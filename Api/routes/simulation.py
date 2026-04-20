@@ -80,3 +80,26 @@ def get_simulation_status(sim_id: int):
 
     db.close()
     return response
+
+
+@router.get("/simulations")
+def get_all_simulations():
+    db = SessionLocal()
+
+    simulations = db.query(Simulation).order_by(Simulation.created_at.desc()).all()
+
+    result = []
+    for sim in simulations:
+        result.append({
+            "simulation_id": sim.id,
+            "model": sim.model,
+            "initial_population": sim.initial_population,
+            "growth_rate": sim.growth_rate,
+            "carrying_capacity": sim.carrying_capacity,
+            "steps": sim.steps,
+            "status": sim.status,
+            "created_at": sim.created_at.astimezone(LISBON_TZ).isoformat() if sim.created_at else None,
+        })
+
+    db.close()
+    return result
