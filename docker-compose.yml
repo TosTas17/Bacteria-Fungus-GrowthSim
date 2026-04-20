@@ -23,16 +23,15 @@ services:
       timeout: 5s
       retries: 5
       start_period: 15s
-    ports:
-      - "15672:15672" # Management UI for the appresentation only to see the queues
     environment:
       - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
       - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS}
 
   api:
-    build:
-      context: .
-      dockerfile: Dockerfile.api
+    #build:
+    #  context: .
+    #  dockerfile: Dockerfile.api
+    image: ghcr.io/tostas17/simulator-api:latest
     container_name: simulation-api
     env_file:
       - .env
@@ -43,9 +42,10 @@ services:
         condition: service_healthy
 
   simulation-worker:
-    build:
-        context: .
-        dockerfile: Dockerfile.worker
+    #build:
+    #  context: .
+    #  dockerfile: Dockerfile.worker
+    image: ghcr.io/tostas17/simulator-worker:latest
     container_name: simulation-worker
     env_file:
       - .env
@@ -56,9 +56,10 @@ services:
         condition: service_healthy
 
   websocket:
-    build:
-      context: .
-      dockerfile: Dockerfile.websocket
+    #build:
+    #  context: .
+    #  dockerfile: Dockerfile.websocket
+    image: ghcr.io/tostas17/simulator-websocket:latest
     container_name: simulation-websocket
     env_file:
       - .env
@@ -67,9 +68,10 @@ services:
         condition: service_healthy
 
   nginx:
-    build: 
-      context: .
-      dockerfile: Dockerfile.nginx
+    #build: 
+    #  context: .
+    #  dockerfile: Dockerfile.nginx
+    image: ghcr.io/tostas17/simulator-nginx:latest
     container_name: simulation-nginx
     ports:
       - "80:80"
@@ -78,9 +80,10 @@ services:
       - api
 
   frontend:
-    build: 
-      context: .
-      dockerfile: Dockerfile.frontend
+    #build:
+    #  context: .
+    #  dockerfile: Dockerfile.frontend
+    image: ghcr.io/tostas17/simulator-frontend:latest
     container_name: simulation-frontend
 
 volumes:
