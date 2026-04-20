@@ -4,9 +4,9 @@ A scalable, asynchronous simulation system based on an event-driven architecture
 
 ## 🏗️ System Architecture
 
-The system consists of decoupled services that communicate through a message broker.
+The system consists of decoupled services, all in docker containers within the same docker network, that communicate through a message broker.
 
-<img src="./architecture_desgin.png" alt="Architecture Diagram"/>
+<img src="./architecture_design.png" alt="Architecture Diagram"/>
 
 ### Workflow
 1. **API:** Receives the request via `POST /simulate`, creates a record in the DB (status `pending`), and publishes an event.
@@ -25,8 +25,10 @@ The system consists of decoupled services that communicate through a message bro
 ### Docker Compose
 The images will be pulled from the GitHub repo:
 ```bash
+docker compose pull
 docker compose up
 ```
+---
 
 ## 🌐 Local Development Setup (Domain)
 
@@ -47,6 +49,7 @@ Open your hosts file with administrative privileges:
 Once saved, you can open your browser and navigate to:
 **`http://simulatorb.io`**
 
+---
 
 ### Accessing the Database
 To inspect the PostgreSQL tables:
@@ -67,12 +70,14 @@ simulations keeps the metadata (the parameters for simulation) and timestamps
 
 ## 📋 Implemented Features
 
-- [x] **Queue Persistence:** Messages survive RabbitMQ restarts.
-- [x] **Fault Tolerance:** Task re-enqueuing in case of worker crashes.
-- [x] **Horizontal Scalability:** Ability to scale workers independently.
-- [x] **Status API:** Endpoint for monitoring simulation states (pending/running).
-- [x] **Asynchronous Communication:** Event-driven architecture using a message broker.
-- [x] **Live Visualization:** Provides real-time interactive graphing in the frontend, reflecting simulation progress instantly as data is processed by the backend.
+* **Queue Persistence:** Messages survive RabbitMQ restarts.
+* **Fault Tolerance:** Automatic task re-enqueuing in the event of a worker failure.
+* **Horizontal Scalability:** Ability to scale workers independently.
+* **Status API:** Endpoint for monitoring simulation states (pending/running).
+* **Asynchronous Communication:** Event-driven architecture using a message broker.
+* **Real-Time Visualization:** Provides interactive frontend charts that reflect simulation progress instantly as data is processed by the backend.
+* **Database:** Structured storage for simulation metadata, timestamps, and results.
+* **GitHub Actions:** Automated image building and management, with simplified deployment via the GitHub Container Registry.
 
 ---
 
