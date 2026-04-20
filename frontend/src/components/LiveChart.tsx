@@ -56,7 +56,7 @@ export default function LiveChart({ simulationId }: any) {
     }
     prevSimulationIdRef.current = simulationId
 
-    const wsUrl = `ws://localhost:8001/ws/${simulationId}`
+    const wsUrl = `/ws/${simulationId}`
     
     const ws = new WebSocket(wsUrl)
     wsRef.current = ws

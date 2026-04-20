@@ -4,7 +4,7 @@ from DataBase.db_models import Base, Simulation, SimulationResult
 from SimulationService.models import SimulationRequest
 
 from zoneinfo import ZoneInfo
-from datetime import timezone
+
 
 LISBON_TZ = ZoneInfo("Europe/Lisbon")
 

@@ -24,7 +24,7 @@ export default function App() {
 
   async function fetchSimulations() {
     try {
-      const res = await fetch("http://localhost:8000/simulations")
+      const res = await fetch("/api/simulations")
       const data = await res.json()
       setSimulations(data)
     } catch (e) {

@@ -37,8 +37,7 @@ async def consume_rabbitmq():
             # Queue for receiving simulation updates
             queue = await channel.declare_queue("simulation_updates", durable=True)
             
-            # Queue for requesting simulation start (WebSocket -> API)
-            start_queue = await channel.declare_queue("simulation_start_requests", durable=True)
+
             start_channel = channel
             
             print("[*] Waiting for simulation updates...")

@@ -78,7 +78,7 @@ export default function SimulationForm({ onStart }: any) {
   }
 
   async function start() {
-    const res = await fetch("http://localhost:8000/simulate", {
+    const res = await fetch("/api/simulate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ model, ...form })

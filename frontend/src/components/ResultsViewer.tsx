@@ -15,7 +15,7 @@ export default function ResultsViewer({ simulationId }: { simulationId: number }
     async function fetchResults() {
       setLoading(true)
       try {
-        const res = await fetch(`http://localhost:8000/simulations/${simulationId}`)
+        const res = await fetch(`/api/simulations/${simulationId}`)
         const data = await res.json()
         setResults(data)
       } catch (e) {

@@ -1,7 +1,10 @@
 __pycache__/
+node_modules/
+dist/
 *.pyc
 .git/
 .env
 venv/
-Frontend/
 .vscode/
+.gitignore
+README.md
